@@ -1,37 +1,17 @@
 // app/projects/[slug]/page.tsx
-import { db } from "@/db";
-import { student_projects, promotions, ada_projects } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getProjectBySlug } from "@/lib/queries";
 
 interface ProjectPageProps {
-  params: {
-    slug: string;
-  };
+  params: Promise<{ slug: string }>;
 }
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
-  const [project] = await db
-    .select({
-      id: student_projects.id,
-      title: student_projects.title,
-      slug: student_projects.slug,
-      publishedAt: student_projects.publishedAt,
-      promotionName: promotions.name,
-      adaProjectName: ada_projects.name,
-    })
-    .from(student_projects)
-    .leftJoin(
-      promotions,
-      eq(student_projects.promotionId, promotions.id)
-    )
-    .leftJoin(
-      ada_projects,
-      eq(student_projects.adaProjectId, ada_projects.id)
-    )
-    .where(eq(student_projects.slug, params.slug))
-    .limit(1);
+export default async function ProjectPage(props: ProjectPageProps) {
+  // Next 16 : params est une Promise -> on doit l'await
+  const { slug } = await props.params;
+
+  const [project] = await getProjectBySlug(slug);
 
   if (!project) {
     notFound();
@@ -47,7 +27,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           </p>
           {project.publishedAt && (
             <p className="text-xs text-neutral-400 mt-1">
-              Publié le {new Date(project.publishedAt).toLocaleDateString("fr-FR")}
+              Publié le{" "}
+              {new Date(project.publishedAt).toLocaleDateString("fr-FR")}
             </p>
           )}
         </div>
