@@ -24,14 +24,13 @@ const demoUrl = formData.get("demoUrl") as string | null;
   stacks: stacksString,
   promotionId,
   adaProjectId,
-  description,
   githubUrl: githubUrl && githubUrl.trim() !== "" ? githubUrl : null,
   publishedAt: new Date(),
   demoUrl: demoUrl && demoUrl.trim() !== "" ? demoUrl : null,
 });
 
   revalidatePath("/");
-  return { success: true };
+  
 }
 
 export default async function NewProjectPage() {
