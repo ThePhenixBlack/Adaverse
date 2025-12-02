@@ -29,15 +29,17 @@ export default async function HomePage() {
           <ul className="space-y-2">
             {projects.map((project) => (
               <ProjectCard
-                key={project.id}
-                id={project.id}
-                title={project.title}
-                slug={project.slug}
-                adaProjectName={project.adaProjectName}
-                promotionName={project.promotionName}
-                stacks={project.stacks}
-                publishedAt={project.publishedAt}
-              />
+  key={project.id}
+  id={project.id}
+  title={project.title}
+  slug={project.slug}
+  adaProjectName={project.adaProjectName}
+  promotionName={project.promotionName}
+  stacks={project.stacks}
+  publishedAt={
+    project.publishedAt ? project.publishedAt.toISOString() : null
+  }
+/>
             ))}
           </ul>
         )}
