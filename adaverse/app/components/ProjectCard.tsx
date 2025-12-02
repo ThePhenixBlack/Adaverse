@@ -8,7 +8,7 @@ interface ProjectCardProps {
   adaProjectName: string | null;
   promotionName: string | null;
   stacks: string | null;
-  publishedAt: Date | string | null; // 👈 ici le fix
+  publishedAt: Date | null; // ✅ IMPORTANT: Date | null
 }
 
 export function ProjectCard(props: ProjectCardProps) {
@@ -23,11 +23,9 @@ export function ProjectCard(props: ProjectCardProps) {
 
   const href = slug ? `/projects/${slug}` : "#";
 
-  // On normalise la date en string "fr-FR"
-  const formattedDate =
-    publishedAt != null
-      ? new Date(publishedAt).toLocaleDateString("fr-FR")
-      : null;
+  const formattedDate = publishedAt
+    ? publishedAt.toLocaleDateString("fr-FR")
+    : null;
 
   return (
     <li className="border rounded-lg p-3 hover:bg-neutral-50 transition">
