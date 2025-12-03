@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { student_projects, promotions, ada_projects } from "@/db/schema";
 import { eq, isNotNull, desc } from "drizzle-orm";
 
-// Récupérer tous les projets publiés
+// Récupérer tous les projets publiés (pour la home)
 export async function getPublishedProjects() {
   return db
     .select({
@@ -30,7 +30,7 @@ export async function getPublishedProjects() {
     .orderBy(desc(student_projects.publishedAt));
 }
 
-// Récupérer 1 projet par son slug
+// Récupérer 1 projet par son slug (pour la page /projects/[slug])
 export async function getProjectBySlug(slug: string) {
   return db
     .select({
@@ -39,7 +39,8 @@ export async function getProjectBySlug(slug: string) {
       slug: student_projects.slug,
       stacks: student_projects.stacks,
       githubUrl: student_projects.githubUrl,
-      demoUrl: student_projects.demoUrl,      // 👈 ajouté ici
+      demoUrl: student_projects.demoUrl,
+      description: student_projects.description,
       publishedAt: student_projects.publishedAt,
       promotionName: promotions.name,
       adaProjectName: ada_projects.name,

@@ -29,7 +29,8 @@ export const student_projects = pgTable("student_projects", {
   githubUrl: text("github_url"),
   demoUrl: text("demo_url"),
 
-  stacks: text("stacks"), // ← nouvelle colonne
+  stacks: text("stacks"), 
+   description: text("description"),// ← nouvelle colonne
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   publishedAt: timestamp("published_at"),

@@ -1,40 +1,59 @@
-import Link from "next/link";
+// app/projects/new/page.tsx
 import { db } from "@/db";
-import { promotions, student_projects, ada_projects } from "@/db/schema";
-import { slugify } from "@/lib/slugify";
+import { student_projects, promotions, ada_projects } from "@/db/schema";
 import { revalidatePath } from "next/cache";
+import Link from "next/link";
 import { STACKS } from "@/lib/stacks";
-// SERVER ACTION : création projet
+
+function slugify(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 async function createProject(formData: FormData) {
   "use server";
 
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const stacks = formData.getAll("stacks") as string[];
-  const stacksString = stacks.join(", ");
+  const title = (formData.get("title") as string | null)?.trim();
   const promotionId = Number(formData.get("promotionId"));
-const adaProjectId = Number(formData.get("adaProjectId"));
-  const slug = slugify(title);
-const githubUrl = formData.get("githubUrl") as string | null;
-const demoUrl = formData.get("demoUrl") as string | null;
+  const adaProjectId = Number(formData.get("adaProjectId"));
+  const stacks = formData.getAll("stacks") as string[];
 
- await db.insert(student_projects).values({
-  title,
-  slug,
-  stacks: stacksString,
-  promotionId,
-  adaProjectId,
-  githubUrl: githubUrl && githubUrl.trim() !== "" ? githubUrl : null,
-  publishedAt: new Date(),
-  demoUrl: demoUrl && demoUrl.trim() !== "" ? demoUrl : null,
-});
+  const descriptionRaw = formData.get("description") as string | null;
+  const description =
+    descriptionRaw && descriptionRaw.trim() !== ""
+      ? descriptionRaw.trim()
+      : null;
+
+  const githubUrl = (formData.get("githubUrl") as string | null)?.trim() || "";
+  const demoUrl = (formData.get("demoUrl") as string | null)?.trim() || "";
+
+  if (!title || !promotionId || !adaProjectId) {
+    return;
+  }
+
+  const slug = slugify(title);
+  const stacksString = stacks.join(", ");
+
+  await db.insert(student_projects).values({
+    title,
+    slug,
+    stacks: stacksString,
+    promotionId,
+    adaProjectId,
+    description, // 👈 ON SAUVEGARDE
+    githubUrl: githubUrl !== "" ? githubUrl : null,
+    demoUrl: demoUrl !== "" ? demoUrl : null,
+    publishedAt: new Date(),
+  });
 
   revalidatePath("/");
-  
 }
 
 export default async function NewProjectPage() {
-  // Récupération des promotions existantes
   const promoList = await db
     .select({
       id: promotions.id,
@@ -42,133 +61,176 @@ export default async function NewProjectPage() {
     })
     .from(promotions);
 
-    const adaList = await db
-  .select({
-    id: ada_projects.id,
-    name: ada_projects.name,
-  })
-  .from(ada_projects);
+  const adaList = await db
+    .select({
+      id: ada_projects.id,
+      name: ada_projects.name,
+    })
+    .from(ada_projects);
 
   return (
-    <section className="space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Proposer un projet</h1>
+    <main className="min-h-screen bg-surface-muted">
+      <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
+        {/* Header */}
+        <header className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Proposer un projet
+            </h1>
+            <p className="text-sm text-text-muted mt-1">
+              Renseigne les informations principales de ton projet pour qu&apos;il
+              apparaisse dans Adaverse.
+            </p>
+          </div>
 
-        <Link
-          href="/"
-          className="text-sm rounded-lg border px-3 py-1 hover:bg-neutral-50"
-        >
-          ← Retour
-        </Link>
-      </header>
-
-      <form action={createProject} className="space-y-4 border p-4 rounded-lg bg-white">
-        {/* Titre */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Titre du projet</label>
-          <input
-            type="text"
-            name="title"
-            className="w-full border px-3 py-2 rounded-lg text-sm"
-            placeholder="Ex: Adaverse Platform"
-            required
-          />
-        </div>
-
-        {/* Description */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Description</label>
-          <textarea
-            name="description"
-            className="w-full border px-3 py-2 rounded-lg text-sm"
-            placeholder="Décris brièvement le projet"
-            rows={4}
-            required
-          />
-        </div>
-
-<div className="space-y-1">
-  <label className="text-sm font-medium">URL GitHub (optionnel)</label>
-  <input
-    type="url"
-    name="githubUrl"
-    className="w-full border px-3 py-2 rounded-lg text-sm"
-    placeholder="https://github.com/mon-compte/mon-projet"
-  />
-</div>
- <div className="space-y-1">
-  <label className="text-sm font-medium">URL Démo (optionnel)</label>
-  <input
-    type="url"
-    name="demoUrl"
-    className="w-full border px-3 py-2 rounded-lg text-sm"
-    placeholder="https://mon-projet.vercel.app"
-  />
-</div>
-
-     <div className="space-y-2">
-  <label className="text-sm font-medium">Stacks utilisées</label>
-
-
-
-
-  <div className="grid grid-cols-2 gap-2">
-    {STACKS.map((stack) => (
-      <label key={stack} className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="stacks"
-          value={stack}
-          className="w-4 h-4"
-        />
-        {stack}
-      </label>
-    ))}
-  </div>
-</div>
-
-        {/* Sélection de la promotion */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Promotion</label>
-          <select
-            name="promotionId"
-            className="w-full border px-3 py-2 rounded-lg text-sm bg-white"
-            required
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 text-xs rounded-lg border border-border-subtle bg-surface px-3 py-1.5 hover:bg-primary-soft hover:text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <option value="">Choisir une promotion</option>
+            ← Retour à la liste
+          </Link>
+        </header>
 
-            {promoList.map((promo) => (
-              <option key={promo.id} value={promo.id}>
-                {promo.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Formulaire */}
+        <form
+          action={createProject}
+          className="space-y-5 rounded-xl bg-surface border border-border-subtle px-4 py-5 shadow-sm"
+        >
+          {/* Titre */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium" htmlFor="title">
+              Titre du projet
+            </label>
+            <input
+              id="title"
+              name="title"
+              type="text"
+              required
+              className="w-full rounded-lg border border-border-subtle bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              placeholder="Ex : Adaction, Pokédex, Kanban Board…"
+            />
+          </div>
+
+{/* Description */}
 <div className="space-y-1">
-  <label className="text-sm font-medium">Projet ADA</label>
-  <select
-    name="adaProjectId"
-    className="w-full border px-3 py-2 rounded-lg text-sm bg-white"
-    required
-  >
-    <option value="">Choisir un projet ADA</option>
-
-    {adaList.map((ada) => (
-      <option key={ada.id} value={ada.id}>
-        {ada.name}
-      </option>
-    ))}
-  </select>
+  <label className="text-sm font-medium" htmlFor="description">
+    Description du projet
+  </label>
+  <textarea
+    id="description"
+    name="description"
+    rows={4}
+    className="w-full rounded-lg border border-border-subtle bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+    placeholder="Explique rapidement le but du projet, les fonctionnalités principales, etc."
+  />
 </div>
 
-        {/* Bouton */}
-        <button
-          type="submit"
-          className="rounded-lg border px-4 py-2 text-sm bg-black text-white"
-        >
-          Envoyer
-        </button>
-      </form>
-    </section>
+          {/* Promotion + Projet ADA */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="promotionId">
+                Promotion
+              </label>
+              <select
+                id="promotionId"
+                name="promotionId"
+                required
+                className="w-full rounded-lg border border-border-subtle bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              >
+                <option value="">Choisir une promotion</option>
+                {promoList.map((promo) => (
+                  <option key={promo.id} value={promo.id}>
+                    {promo.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="adaProjectId">
+                Projet ADA
+              </label>
+              <select
+                id="adaProjectId"
+                name="adaProjectId"
+                required
+                className="w-full rounded-lg border border-border-subtle bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              >
+                <option value="">Choisir un projet ADA</option>
+                {adaList.map((ada) => (
+                  <option key={ada.id} value={ada.id}>
+                    {ada.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Stacks */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Stacks utilisées</p>
+            <p className="text-xs text-text-soft">
+              Sélectionne une ou plusieurs technologies utilisées pour ce projet.
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {STACKS.map((stack) => (
+                <label
+                  key={stack}
+                  className="flex items-center gap-2 text-xs rounded-lg border border-border-subtle bg-background px-2 py-1.5 cursor-pointer hover:bg-surface-muted"
+                >
+                  <input
+                    type="checkbox"
+                    name="stacks"
+                    value={stack}
+                    className="h-3 w-3"
+                  />
+                  <span>{stack}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Liens */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="githubUrl">
+                URL GitHub (optionnel)
+              </label>
+              <input
+                id="githubUrl"
+                name="githubUrl"
+                type="url"
+                className="w-full rounded-lg border border-border-subtle bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                placeholder="https://github.com/mon-compte/mon-projet"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="demoUrl">
+                URL démo (optionnel)
+              </label>
+              <input
+                id="demoUrl"
+                name="demoUrl"
+                type="url"
+                className="w-full rounded-lg border border-border-subtle bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                placeholder="https://mon-projet.vercel.app"
+              />
+            </div>
+          </div>
+
+          {/* Bouton submit */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            >
+              Publier le projet
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
   );
 }
