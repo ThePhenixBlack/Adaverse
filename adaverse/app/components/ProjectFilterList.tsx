@@ -3,12 +3,34 @@
 import { useState, useMemo } from "react";
 import { ProjectCard } from "./ProjectCard";
 
-export function ProjectFilterList({ projects }) {
+type Project = {
+  id: number;
+  title: string;
+  slug: string | null;
+  adaProjectName: string | null;
+  promotionName: string | null;
+  stacks: string | null;
+  publishedAt: string | null; // ISO string ou null
+};
+
+interface ProjectFilterListProps {
+  projects: Project[];
+}
+
+export function ProjectFilterList({ projects }: ProjectFilterListProps) {
   const [filter, setFilter] = useState("all");
 
   // Liste ADA unique pour le select
-  const adaProjects = Array.from(
-    new Set(projects.map((p) => p.adaProjectName))
+  const adaProjects = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          projects
+            .map((p) => p.adaProjectName)
+            .filter((name): name is string => Boolean(name))
+        )
+      ),
+    [projects]
   );
 
   const filtered = useMemo(() => {
@@ -18,7 +40,7 @@ export function ProjectFilterList({ projects }) {
 
   return (
     <section className="space-y-4">
-      {/* MENU DEROULANT */}
+      {/* MENU DÉROULANT */}
       <div className="flex items-center gap-3">
         <label className="text-sm font-medium">Projet ADA :</label>
 
